@@ -1,0 +1,16 @@
+global class HerokuBatchS implements Schedulable {
+      // String obj1='CaseHistory';
+     // String a = select;
+    global void  execute(SchedulableContext sc){
+       BatchableClassOncheroku  bs = new BatchableClassOncheroku('CaseHistory','CaseId,Id, CreatedById,DataType, OldValue,IsDeleted, NewValue, Field');   
+       BatchableClassOncheroku  cs = new BatchableClassOncheroku('CaseMilestone','Id,BusinessHoursId,CompletionDate,ElapsedTimeInDays,ElapsedTimeInHrs,ElapsedTimeInMins,IsCompleted,IsViolated,MilestoneTypeId,StartDate,TargetDate, TargetResponseInDays,TargetResponseInHrs,TargetResponseInMins,TimeRemainingInDays,TimeRemainingInHrs,TimeRemainingInMins,TimeSinceTargetInDays,TimeSinceTargetInHrs,TimeSinceTargetInMins');  
+        
+        Database.executeBatch(bs);
+        Database.executeBatch(cs);
+        
+        
+         
+    }
+
+}
+
