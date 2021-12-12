@@ -1,0 +1,135 @@
+global class BatchableClassOncheroku implements Database.Batchable<sObject>, Database.Stateful{
+    
+    
+   //Step1: creation of constructor which will receive dynamic query values from  schedular class.
+    String objectApiName='';
+    String  query='';
+    global  BatchableClassOncheroku(String ObjectApiName, String FieldNameList) {
+         query= 'select '+FieldNameList+' from '+ObjectAPIName;
+         this.objectApiName=ObjectApiName;
+      System.debug('The Query is '+query);
+   
+    }
+    // Step2: Here the start method receiving query from constructor
+    global  Database.QueryLocator start(Database.BatchableContext BC){
+          query= query;
+        System.debug('start method query is  '+query);
+        return Database.getQueryLocator(query);
+        
+    }
+    
+    
+    global void execute(Database.BatchableContext BC , List<sObject> scope){
+         
+        System.debug('The List received is  '+scope);
+        // step3: The List which will have the updated values
+        List<sObject> finalListToUpdate =  new List<sObject>();
+         System.debug('The object name is  '+objectApiName);
+        
+        // Step4: here putting a filter based on object Name = Casehistory
+        if(objectApiName=='CaseHistory'){
+         // Step5:add the existing CaseHistory Object  CaseHistoryIds to avoid duplicate sync
+            Set<Id> IdSet = new Set<Id>();
+            for(CustomCase__c c: [Select CaseHistoryId__c from CustomCase__c]){
+                IdSet.add(c.CaseHistoryId__c);
+            }
+            for(sObject s:scope){
+                System.debug('The list   '+s.Id);
+                System.debug('value is   '+(String)s.get('CaseId'));
+               // Step6: inserting the new records 
+                if(!IdSet.contains(s.Id)){
+                    CustomCase__c ch = new CustomCase__c();
+                    
+                    ch.CaseId__c = (String)s.get('CaseId');
+                    ch.DataType__c= (String)s.get('DataType');
+                    ch.IsDeleted__c = (Boolean)s.get('isDeleted');
+                    ch.CaseHistoryId__c=s.Id;
+                    ch.OldValue__c=(String)s.get('OldValue');
+                    ch.NewValue__c=(String)s.get('NewValue');
+                    ch.Field__c= (String)s.get('Field');
+                    
+                    finalListToUpdate.add(ch);
+                   
+                }
+            }
+        }
+        // step7:checking the object for object=CaseMilestone.
+        if(objectApiName == 'CaseMilestone'){
+            // step8:creating a Map to store all the Ids along with List of sobject records
+            Map<Id,sObject> caseMileMap= new Map<Id,sObject>();
+            for(CustomCase__c c: [SELECT CaseMilestoneId__c,BusinessHoursId__c,CompletionDate__c,ElapsedTimeInDays__c,ElapsedTimeInHrs__c,
+                               ElapsedTimeInMins__c,IsCompleted__c,IsViolated__c,MilestoneTypeId__c,StartDate__c,TargetDate__c,
+                               TargetResponseInDays__c,TargetResponseInHrs__c,TargetResponseInMins__c,TimeRemainingInDays__c,TimeRemainingInHrs__c,
+                               TimeRemainingInMins__c,TimeSinceTargetInDays__c,TimeSinceTargetInHrs__c,TimeSinceTargetInMins__c FROM CustomCase__c]){
+                                      
+               caseMileMap.put(c.CaseMilestoneId__c,c);                
+            }
+            for(sobject  s:scope){
+                CustomCase__c cmObj = new CustomCase__c();
+                // Step9:if the Object record already exists  then we will update the  value.
+                if(caseMileMap.containsKey(s.id)){
+                    sObject CustomCase= (CustomCase__C)caseMileMap.get(s.Id);
+                    System.debug('CustomCase  >>>  '+CustomCase);
+                    
+                    CustomCase.put('BusinessHoursId__c',(String)s.get('BusinessHoursId__c'));
+                    CustomCase.put('CompletionDate__c', (Datetime)s.get('CompletionDate__c'));
+                    CustomCase.put('ElapsedTimeInDays__c',(Decimal)s.get('ElapsedTimeInDays__c'));
+                    CustomCase.put('ElapsedTimeInHrs__c',(Decimal)s.get('ElapsedTimeInHrs__c'));
+                    CustomCase.put('ElapsedTimeInMins__c',(Decimal)s.get('ElapsedTimeInMins__c'));
+                    CustomCase.put('IsCompleted__c',(Boolean)s.get('IsCompleted__c'));
+                    CustomCase.put('IsViolated__c',(Boolean)s.get('IsViolated__c'));
+                    CustomCase.put('MilestoneTypeId__c',(String)s.get('MilestoneTypeId__c'));
+                    CustomCase.put('StartDate__c',(String)s.get('StartDate__c'));
+                    CustomCase.put('TargetDate__c',(String)s.get('TargetDate__c'));
+                    CustomCase.put('TargetResponseInDays__c',(Decimal)s.get('TargetResponseInDays__c'));
+                    CustomCase.put('TargetResponseInHrs__c',(Decimal)s.get('TargetResponseInHrs__c'));
+                    CustomCase.put('TargetResponseInMins__c',(Decimal)s.get('TargetResponseInMins__c'));
+                    CustomCase.put('TimeRemainingInDays__c',(Decimal)s.get('TimeRemainingInDays__c'));
+                    CustomCase.put('TimeRemainingInHrs__c',(String)s.get('TimeRemainingInHrs__c'));
+                    CustomCase.put('TimeRemainingInMins__c',(String)s.get('TimeRemainingInMins__c'));
+                    CustomCase.put('TimeSinceTargetInDays__c',(Decimal)s.get('TimeSinceTargetInDays__c'));
+                    CustomCase.put('TimeSinceTargetInHrs__c',(String)s.get('TimeSinceTargetInHrs__c'));
+                    CustomCase.put('TimeSinceTargetInMins__c',(String)s.get('TimeSinceTargetInMins__c'));
+                   
+                    finalListToUpdate.add(CustomCase);
+                    
+                }
+                // Step9:If the object record does not exists , will create a new record.
+                else if(!caseMileMap.containsKey(s.Id)){
+                       cmObj.CaseMilestoneId__c = s.Id;
+                      // cmObj.CaseId__c=s.CaseId;
+                       cmObj.BusinessHoursId__c= (String)s.get('BusinessHoursId');
+                       cmObj.CompletionDate__c=(Datetime)s.get('CompletionDate');
+                       cmObj.ElapsedTimeInDays__c=(Decimal)s.get('ElapsedTimeInDays');
+                       cmObj.ElapsedTimeInHrs__c= (Decimal)s.get('ElapsedTimeInHrs');
+                       cmObj.ElapsedTimeInMins__c= (Decimal)s.get('ElapsedTimeInMins');
+                       cmObj.IsCompleted__c = (Boolean)s.get('IsCompleted');
+                       cmObj.IsViolated__c = (Boolean)s.get('IsViolated');
+                       cmObj.MilestoneTypeId__c= (String)s.get('MilestoneTypeId');
+                       cmObj.StartDate__c = (DateTime)s.get('StartDate');
+                       cmObj.TargetDate__c= (DateTime)s.get('TargetDate');
+                       cmObj.TargetResponseInDays__c=(Decimal)s.get('TargetResponseInDays');
+                       cmObj.TargetResponseInHrs__c= (Decimal)s.get('TargetResponseInHrs');
+                      cmObj.TargetResponseInMins__c= (Decimal)s.get('TargetResponseInMins');
+                      cmObj.TimeRemainingInDays__c= (Decimal)s.get('TimeRemainingInDays');
+                      cmObj.TimeRemainingInHrs__c = (String)s.get('TimeRemainingInHrs');
+                      cmObj.TimeRemainingInMins__c= (String)s.get('TimeRemainingInMins');
+                     cmObj.TimeSinceTargetInDays__c=(Decimal)s.get('TimeSinceTargetInDays');
+                     cmObj.TimeSinceTargetInHrs__c=(String)s.get('TimeSinceTargetInHrs');
+                     cmObj.TimeSinceTargetInMins__c=(String)s.get('TimeSinceTargetInMins');
+                      
+                    finalListToUpdate.add(cmObj);
+                      
+                }
+            }
+            
+        }
+        // step10:-- finally uodating and inserting new records.
+        upsert finalListToUpdate;
+        
+    } 
+    global void  finish(Database.BatchableContext BC){
+        
+    }
+
+}
