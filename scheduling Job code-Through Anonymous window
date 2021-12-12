@@ -1,0 +1,16 @@
+
+// 1.This code is for directly hitting the Batch code
+Id batchJobId = Database.executeBatch(new CopyHistoryBatch(), 10);
+// 2. This code is forcleaning up all the data on the object if needed
+List<CustomCase__c> caselist = [Select id from CustomCase__c];
+delete caselist;
+
+// This code is going to schedule a job every 5 minutes.
+
+for(integer i=5; i<60;i=i+5){
+
+String cronExpr  = '0 '+i+' * * * ?' ;
+
+System.schedule('Hourly Account Batch Schedule job'+i, cronExpr , new HerokuBatchS());
+
+}
